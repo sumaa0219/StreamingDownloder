@@ -1,3 +1,7 @@
 video/*
 audio/*
 out.mp4
+out.aac
+Hololive-4fes-Our-Bright-Parade.mp4
+ffmpeg.exe
+ffprobe.exe

@@ -4,7 +4,7 @@ import ffmpeg
 import webbrowser
 import time
 
-playlist = m3u8.load("cam6_v1_audio_320kbps_48k_.m3u8")
+playlist = m3u8.load("cam6_v1_video_1080P_.m3u8")
 BaseURL = "https://vod2.spwn.jp/spwn-vod2/23031801-jphololive4thfes/grp1/cam6_v1/"
 
 cookie = {
@@ -21,15 +21,21 @@ for i, segment in enumerate(playlist.segments):
     URL = BaseURL + uri
     print(URL)
     r = requests.get(url=URL, cookies=cookie)
-    with open(f'audio/{uri}', 'wb') as saveFile:
+    with open(f'video/{uri}', 'wb') as saveFile:
 
         saveFile.write(r.content)
-    # ffmpeg.input(URL).output(f'video/{uri}').run()
-    # stream = ffmpeg.input(URL,headers=f'Cookie:{cookie}\r\n')
-    # stream = ffmpeg.output(stream, f'./video/{uri}')
-    # ffmpeg.run(stream)
-# URL = "https://vod2.spwn.jp/spwn-vod2/23031801-jphololive4thfes/grp1/cam6_v1/cam6_v1_video_1080P_20230320T131916_00001.ts"
-    # time.sleep(5)
-    
-    # webbrowser.open(URL)
 
+
+videos = []
+
+for i, segment in enumerate(playlist.segments):
+    videos.append("video/" + segment.absolute_uri)
+
+# videos = ["ts/1.ts", "ts/2.ts", "ts/3.ts", "ts/4.ts", "ts/5.ts"]  # 結合するファイルのパス
+# 一旦テキストファイルに書き出す
+# 書き出さない方法は、あまりにファイル数が多い場合に「コマンド長すぎ」と怒られる
+with open("tmp.txt", "w") as fp:
+    lines = [f"file '{line}'" for line in videos] # file 'パス' という形式にする
+    fp.write("\n".join(lines))
+# ffmpegで結合（再エンコードなし）
+ffmpeg.input("tmp.txt", f="concat", safe=0).output("out.mp4", c="copy").run()
