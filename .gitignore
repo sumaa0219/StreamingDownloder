@@ -5,3 +5,11 @@ out.aac
 Hololive-4fes-Our-Bright-Parade.mp4
 ffmpeg.exe
 ffprobe.exe
+output
+convert
+.venv
+assets
+.DS_Store
+.python-version
+__pycache__
+.vscode
