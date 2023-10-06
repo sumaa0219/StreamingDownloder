@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtCore import QUrl, QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QToolBar, QAction, QLineEdit, QSplitter, QTextEdit, QPushButton, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QToolBar, QAction, QLineEdit, QSplitter, QTextEdit, QPushButton, QFileDialog
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5 import QtGui
 from zan_live import zanlive
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         # self.mainSpliter.setOrientation(1)
 
         self.left_URL_Grid = QSplitter(Qt.Vertical)
-        self.URL_youtube = QPushButton("Youtube")
+        self.URL_youtube = QPushButton("Youtube(要望が多ければ)")
         self.URL_youtube.clicked.connect(lambda:
                                          self.select_pages("https://youtube.com"))
         self.URL_zan = QPushButton("Zan-live")
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self.leftSpliter.addWidget(self.left_URL_Grid)
 
         self.left_button = QPushButton("ダウンロード")
-        self.left_button.clicked.connect(self.download)
+        self.left_button.clicked.connect(self.show_download_dialog)
         self.leftSpliter.addWidget(self.left_button)
 
         self.text_edit = QTextEdit(self)
@@ -114,11 +114,21 @@ class MainWindow(QMainWindow):
     def select_pages(self, page_url):
         self.rightSpliter.setUrl(QUrl(page_url))
 
+    def show_download_dialog(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ShowDirsOnly | QFileDialog.DontUseNativeDialog
+        self.download_directory = QFileDialog.getExistingDirectory(
+            self, "Select Download Directory", options=options)
+
+        if self.download_directory:
+            self.download()
+
     def download(self):
         self.page_cookie = {x[0]: x[1] for x in self.cookie_list}
         if "zan-live" in self.url_bar.text():
             print("zan")
-            zan_live.downloadStreamingData(self.rightSpliter, self.page_cookie)
+            zan_live.downloadStreamingData(
+                self.rightSpliter, self.page_cookie, self.download_directory)
 
     def update_progress(self, progress):
         print("Progress:", progress)

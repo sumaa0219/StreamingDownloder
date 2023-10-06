@@ -6,6 +6,8 @@ import m3u8
 import decryp
 import re
 import ffmpeg
+import shutil
+import subprocess
 
 dc = decryp.decryp()
 
@@ -46,7 +48,6 @@ class zanlive():
                 if link.endswith(".m3u8"):
                     self.links.append(link)
                 start = end
-        print(self.links)
 
     def download_m3u8(self, window):
         print("start to download m3u8....")
@@ -98,9 +99,10 @@ class zanlive():
         timer = threading.Timer(3, getStreamingURL)
         timer.start()
 
-    def downloadStreamingData(self, window, cookie):
+    def downloadStreamingData(self, window, cookie, download_directory):
         print("starting download")
         self.getStreamingm3u8(window, cookie)
+        self.download_directory = download_directory
 
         def getAES128_key_in(indexm3u8):
             key = indexm3u8.keys[0]
@@ -123,7 +125,6 @@ class zanlive():
         def download():
             indexm3u8 = m3u8.load(os.path.join("assets", "m3u8", "index.m3u8"))
             key, iv = getAES128_key_in(indexm3u8)
-            print(key, iv)
             dc.setkey_iv(key, iv)
 
             for i, segment in enumerate(indexm3u8.segments):
@@ -155,25 +156,33 @@ class zanlive():
             for i, segment in enumerate(indexm3u8.segments):
                 uri = segment.absolute_uri.split("/")[-1]
                 path = os.path.join("assets", "video", uri)
-                outpath = os.path.join(
-                    "assets", "video_decript", uri)
-                self.pathArry.append(outpath)
+                outpath = os.path.join("assets", "video_decript", uri)
+                ffmpeg_outPath = os.path.join("video_decript", uri)
+                self.pathArry.append(ffmpeg_outPath)
                 self.create_directory(os.path.dirname(outpath))
-                dc.decrypt_file(path, outpath)
-                self.progress = float(i/numAllFiles*100)
-                self.progress = float(i/numAllFiles*100)
-                pro_bar = ('=' * int(self.progress/10)) + \
-                    (' ' * (10 - int(self.progress/10)))
-                print('\r[{0}] {1}%   復号完了'.format(
-                    pro_bar, round(self.progress, 2)), end='')
+                if os.path.exists(outpath):
+                    pass
+                else:
+                    dc.decrypt_file(path, outpath)
+                    self.progress = float(i/numAllFiles*100)
+                    self.progress = float(i/numAllFiles*100)
+                    pro_bar = ('=' * int(self.progress/10)) + \
+                        (' ' * (10 - int(self.progress/10)))
+                    print('\r[{0}] {1}%   復号完了'.format(
+                        pro_bar, round(self.progress, 2)), end='')
 
             with open(os.path.join("assets", "tmp.txt"), "w") as fp:
                 # file 'パス' という形式にする
                 lines = [f"file '{line}'" for line in self.pathArry]
                 fp.write("\n".join(lines))
-            # ffmpegで結合（再エンコードなし）
-            ffmpeg.input(os.path.join("assets", "tmp.txt"), f="concat", safe=0).output(
-                "out.mp4", c="copy").run()
+            # ffmpegで結合（再エンコードなし
+            textPath = os.path.join("assets", "tmp.txt")
+            print("\nprossesting ffmpeg. please wait for....")
+            ffmpeg.input(textPath, f="concat", safe=0).output(
+                os.path.join(self.download_directory, "out.mp4"), c="copy").run()
+            shutil.rmtree("assets")
+            print("succese!!")
+            subprocess.Popen(['explorer', self.download_directory], shell=True)
 
         timer = threading.Timer(5, download)
         timer.start()
