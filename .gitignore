@@ -13,3 +13,8 @@ assets
 .python-version
 __pycache__
 .vscode
+build
+dist
+.vscode
+”
+app.spec
