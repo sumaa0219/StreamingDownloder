@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QToolBar, QAction, QLineE
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5 import QtGui
 from zan_live import zanlive
+import os
+import shutil
 
 
 class Communicator(QObject):
@@ -47,7 +49,7 @@ class MainWindow(QMainWindow):
 
         self.rightSpliter.setUrl(QUrl('https://google.com'))
         # self.rightSpliter.setUrl(
-        #     QUrl('https://www.zan-live.com/ja/live/play/2696/1422'))
+        #     QUrl('https://www.zan-live.com/ja/live/play/1797/663'))
         self.rightSpliter.settings().setAttribute(
             QWebEngineSettings.JavascriptEnabled, True)
         self.setCentralWidget(self.mainSpliter)
@@ -115,6 +117,8 @@ class MainWindow(QMainWindow):
         self.rightSpliter.setUrl(QUrl(page_url))
 
     def show_download_dialog(self):
+        if os.path.exists("assets"):
+            shutil.rmtree("assets")
         options = QFileDialog.Options()
         options |= QFileDialog.ShowDirsOnly | QFileDialog.DontUseNativeDialog
         self.download_directory = QFileDialog.getExistingDirectory(

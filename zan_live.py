@@ -78,12 +78,13 @@ class zanlive():
 
         def getStreamingURL():
             print("getting streaming URL...")
+            global streamingm3u8
             dir_path = os.listdir(os.path.join("assets", "m3u8"))
             self.baseURL = self.links[0].replace(self.file_name, "")
-            self.streamingm3u8 = m3u8.load(
+            streamingm3u8 = m3u8.load(
                 os.path.join("assets", "m3u8", dir_path[0]))
 
-            url = self.baseURL + self.streamingm3u8.playlists[0].uri
+            url = self.baseURL + streamingm3u8.playlists[0].uri
             url_path = urlsplit(url).path
             parts = url_path.split("/")
             file_name = parts[-1]
@@ -123,6 +124,7 @@ class zanlive():
             return (filePath, keyiv)
 
         def download():
+            global streamingm3u8
             indexm3u8 = m3u8.load(os.path.join("assets", "m3u8", "index.m3u8"))
             key, iv = getAES128_key_in(indexm3u8)
             dc.setkey_iv(key, iv)
@@ -134,7 +136,7 @@ class zanlive():
                 # tsファイルのパス
                 uri = segment.absolute_uri.split("/")[-1]
                 BaseURL = re.sub(self.file_name, "", self.url)
-                base = urlsplit((self.streamingm3u8.playlists[0].uri)).path
+                base = urlsplit((streamingm3u8.playlists[0].uri)).path
                 url_quality_path = base.split("/")[0]
                 URL = BaseURL + url_quality_path+"/" + uri
 
