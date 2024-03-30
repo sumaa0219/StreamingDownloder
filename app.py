@@ -1,11 +1,12 @@
 import sys
 from PyQt5.QtCore import QUrl, QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QToolBar, QAction, QLineEdit, QSplitter, QTextEdit, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QToolBar, QAction, QLineEdit, QSplitter, QTextEdit, QPushButton, QFileDialog
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5 import QtGui
 from zan_live import zanlive
 import os
 import shutil
+import youtubeForQt as youtube
 
 
 class Communicator(QObject):
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow):
         # self.mainSpliter.setOrientation(1)
 
         self.left_URL_Grid = QSplitter(Qt.Vertical)
-        self.URL_youtube = QPushButton("Youtube(要望が多ければ)")
+        self.URL_youtube = QPushButton("Youtube")
         self.URL_youtube.clicked.connect(lambda:
                                          self.select_pages("https://youtube.com"))
         self.URL_zan = QPushButton("Zan-live")
@@ -133,6 +134,16 @@ class MainWindow(QMainWindow):
             print("zan")
             zan_live.downloadStreamingData(
                 self.rightSpliter, self.page_cookie, self.download_directory)
+        elif "youtube" in self.url_bar.text():
+            if "watch" in self.url_bar.text():
+                self.subWindow = youtube.download(
+                    "video", self.url_bar.text(), self.download_directory)
+                self.subWindow.show()
+                print("youtube")
+            elif "playlist" in self.url_bar.text():
+                print("youtube playlist")
+            else:
+                print("Not youtube wattching page")
 
     def update_progress(self, progress):
         print("Progress:", progress)
