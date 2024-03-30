@@ -1,8 +1,7 @@
 video/*
 audio/*
-out.mp4
-out.aac
-Hololive-4fes-Our-Bright-Parade.mp4
+*.mp4
+*.aac
 ffmpeg.exe
 ffprobe.exe
 output
@@ -16,5 +15,4 @@ __pycache__
 build
 dist
 .vscode
-”
 app.spec

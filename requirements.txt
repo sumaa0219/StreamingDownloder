@@ -10,8 +10,7 @@ imageio-ffmpeg==0.4.9
 m3u8==4.0.0
 macholib==1.16.3
 moviepy==1.0.3
-numpy==1.20.0
-packaging==24.0
+packaging==24.0w
 pillow==10.2.0
 proglog==0.1.10
 pycryptodome==3.20.0
