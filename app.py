@@ -1,166 +1,141 @@
-import sys
-from PyQt5.QtCore import QUrl, QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QToolBar, QAction, QLineEdit, QSplitter, QTextEdit, QPushButton, QFileDialog
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PyQt5 import QtGui
-from zan_live import zanlive
-import os
+import argparse
 import shutil
-import youtubeForQt as youtube
+import subprocess
+import sys
+from pathlib import Path
+from tkinter import Tk, filedialog, simpledialog
+from urllib.parse import urlparse
 
 
-class Communicator(QObject):
-    progressChanged = pyqtSignal(str)
+def pick_m3u8_url() -> str | None:
+    root = Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    entered = simpledialog.askstring(
+        title="Input m3u8 URL",
+        prompt="Enter m3u8 URL (HLS):",
+        parent=root,
+    )
+    root.destroy()
+    if not entered:
+        return None
+    return entered.strip()
 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super(MainWindow, self).__init__()
-        self.domain = ""
-        self.mainSpliter = QSplitter()
-        self.leftSpliter = QSplitter(Qt.Vertical)
-        self.rightSpliter = QWebEngineView()
-        self.rightSpliter.setFixedSize(800, 600)
-        self.mainSpliter.addWidget(self.leftSpliter)
-        self.mainSpliter.addWidget(self.rightSpliter)
-        # self.mainSpliter.setOrientation(1)
-
-        self.left_URL_Grid = QSplitter(Qt.Vertical)
-        self.URL_youtube = QPushButton("Youtube")
-        self.URL_youtube.clicked.connect(lambda:
-                                         self.select_pages("https://youtube.com"))
-        self.URL_zan = QPushButton("Zan-live")
-        self.URL_zan.clicked.connect(lambda:
-                                     self.select_pages("https://zan-live.com"))
-        self.left_URL_Grid.addWidget(self.URL_youtube)
-        self.left_URL_Grid.addWidget(self.URL_zan)
-        self.leftSpliter.addWidget(self.left_URL_Grid)
-
-        self.left_button = QPushButton("ダウンロード")
-        self.left_button.clicked.connect(self.show_download_dialog)
-        self.leftSpliter.addWidget(self.left_button)
-
-        self.text_edit = QTextEdit(self)
-        self.leftSpliter.addWidget(self.text_edit)
-
-        self.communicator = Communicator()
-        self.communicator.progressChanged.connect(self.update_progress)
-        sys.stdout = self
-        sys.stderr = self
-
-        self.rightSpliter.setUrl(QUrl('https://google.com'))
-        # self.rightSpliter.setUrl(
-        #     QUrl('https://www.zan-live.com/ja/live/play/1797/663'))
-        self.rightSpliter.settings().setAttribute(
-            QWebEngineSettings.JavascriptEnabled, True)
-        self.setCentralWidget(self.mainSpliter)
-        self.showMaximized()
-
-        # cokkie
-        self.cookie_store = self.rightSpliter.page().profile().cookieStore()
-
-        # Cookieの変更を監視
-        self.cookie_store.cookieAdded.connect(self.cookie_added)
-
-        # navbar
-        navbar = QToolBar()
-        self.addToolBar(navbar)
-
-        back_btn = QAction('Back', self)
-        back_btn.triggered.connect(self.rightSpliter.back)
-        navbar.addAction(back_btn)
-
-        forward_btn = QAction('Forward', self)
-        forward_btn.triggered.connect(self.rightSpliter.forward)
-        navbar.addAction(forward_btn)
-
-        reload_btn = QAction('Reload', self)
-        reload_btn.triggered.connect(self.rightSpliter.reload)
-        navbar.addAction(reload_btn)
-
-        home_btn = QAction('Home', self)
-        home_btn.triggered.connect(self.navigate_home)
-        navbar.addAction(home_btn)
-
-        self.url_bar = QLineEdit()
-        self.url_bar.returnPressed.connect(self.navigate_to_url)
-        navbar.addWidget(self.url_bar)
-
-        self.rightSpliter.urlChanged.connect(self.update_url)
-
-    def navigate_home(self):
-        self.rightSpliter.setUrl(QUrl('https://google.com'))
-
-    def navigate_to_url(self):
-        url = self.url_bar.text()
-        self.rightSpliter.setUrl(QUrl(url))
-
-    def update_url(self, q):
-        self.url_bar.setText(q.toString())
-
-    def cookie_added(self, cookie):
-        # Cookieが追加されたときの処理
-        name = cookie.name().data().decode()
-        value = cookie.value().data().decode()
-        domain = ""
-        try:
-            domain = cookie.domain().data().decode()
-        except:
-            domain = cookie.domain()
-
-        if self.domain != domain:
-            self.domain = domain
-            self.cookie_list = []  # 新しいドメインに切り替えたらリストをリセット
-        if (name, value) not in self.cookie_list:
-            self.cookie_list.append((name, value))
-
-    def select_pages(self, page_url):
-        self.rightSpliter.setUrl(QUrl(page_url))
-
-    def show_download_dialog(self):
-        if os.path.exists("assets"):
-            shutil.rmtree("assets")
-        options = QFileDialog.Options()
-        options |= QFileDialog.ShowDirsOnly | QFileDialog.DontUseNativeDialog
-        self.download_directory = QFileDialog.getExistingDirectory(
-            self, "Select Download Directory", options=options)
-
-        if self.download_directory:
-            self.download()
-
-    def download(self):
-        self.page_cookie = {x[0]: x[1] for x in self.cookie_list}
-        if "zan-live" in self.url_bar.text():
-            print("zan")
-            zan_live.downloadStreamingData(
-                self.rightSpliter, self.page_cookie, self.download_directory)
-        elif "youtube" in self.url_bar.text():
-            if "watch" in self.url_bar.text():
-                self.subWindow = youtube.download(
-                    "video", self.url_bar.text(), self.download_directory)
-                self.subWindow.show()
-                print("youtube")
-            elif "playlist" in self.url_bar.text():
-                print("youtube playlist")
-            else:
-                print("Not youtube wattching page")
-
-    def update_progress(self, progress):
-        print("Progress:", progress)
-        self.text_edit.append(f"Progress: {progress}")
-
-    def write(self, text):
-        cursor = self.text_edit.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.End)
-        cursor.insertText(text)
-        self.text_edit.setTextCursor(cursor)
-        self.text_edit.ensureCursorVisible()
+def pick_output_file(default_name: str) -> Path | None:
+    root = Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    selected = filedialog.asksaveasfilename(
+        title="Save as",
+        defaultextension=".mp4",
+        initialfile=default_name,
+        filetypes=[("MP4 video", "*.mp4")],
+    )
+    root.destroy()
+    if not selected:
+        return None
+    return Path(selected)
 
 
-zan_live = zanlive()
-cookie_list = []
-app = QApplication(sys.argv)
-QApplication.setApplicationName('Stream Downloader')
-window = MainWindow()
-window.setFixedSize(1000, 600)
-app.exec_()
+def build_ffmpeg_command(input_m3u8_url: str, output_mp4: Path) -> list[str]:
+    ffmpeg_exe = resolve_ffmpeg_executable()
+    if ffmpeg_exe is None:
+        raise FileNotFoundError("ffmpeg executable was not found")
+
+    return [
+        str(ffmpeg_exe),
+        "-y",
+        "-protocol_whitelist",
+        "http,https,tcp,tls,crypto,file",
+        "-i",
+        input_m3u8_url,
+        "-c",
+        "copy",
+        str(output_mp4),
+    ]
+
+
+def is_valid_http_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def default_output_name_from_url(url: str) -> str:
+    parsed = urlparse(url)
+    name = Path(parsed.path).stem
+    if not name:
+        name = "download"
+    return f"{name}.mp4"
+
+
+def resolve_ffmpeg_executable() -> Path | None:
+    # PyInstaller onefile extracts bundled files under _MEIPASS.
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            bundled = Path(meipass) / "ffmpeg.exe"
+            if bundled.exists():
+                return bundled
+
+    local_ffmpeg = Path(__file__).resolve().parent / "ffmpeg.exe"
+    if local_ffmpeg.exists():
+        return local_ffmpeg
+
+    ffmpeg_on_path = shutil.which("ffmpeg")
+    if ffmpeg_on_path:
+        return Path(ffmpeg_on_path)
+    return None
+
+
+def download_from_m3u8(input_m3u8_url: str, output_mp4: Path) -> int:
+    ffmpeg_exe = resolve_ffmpeg_executable()
+    if ffmpeg_exe is None:
+        print("Error: ffmpeg is not found in PATH.")
+        print("Please place ffmpeg.exe next to the app or install ffmpeg in PATH.")
+        return 1
+
+    output_mp4.parent.mkdir(parents=True, exist_ok=True)
+    cmd = build_ffmpeg_command(input_m3u8_url, output_mp4)
+    print("Starting download...")
+    print("ffmpeg:", ffmpeg_exe)
+    print("Input :", input_m3u8_url)
+    print("Output:", output_mp4)
+
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        print("Download failed. ffmpeg exited with code", result.returncode)
+        return result.returncode
+
+    print("Done.")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Input an m3u8 URL and download it as mp4."
+    )
+    parser.add_argument("--url", type=str, help="Input m3u8 URL")
+    parser.add_argument("--output", type=Path, help="Output mp4 file path")
+    args = parser.parse_args()
+
+    input_m3u8_url = args.url or pick_m3u8_url()
+    if input_m3u8_url is None:
+        print("Canceled: no m3u8 URL entered.")
+        return 1
+
+    if not is_valid_http_url(input_m3u8_url):
+        print("Error: URL must start with http:// or https://")
+        return 1
+
+    default_name = default_output_name_from_url(input_m3u8_url)
+    output_mp4 = args.output or pick_output_file(default_name)
+    if output_mp4 is None:
+        print("Canceled: no output file selected.")
+        return 1
+
+    return download_from_m3u8(input_m3u8_url, output_mp4)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
